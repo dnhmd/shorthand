@@ -1,7 +1,10 @@
 package com.shorthand.backend.infrastructure.config;
 
 import com.shorthand.backend.application.service.CreateLinkService;
+import com.shorthand.backend.application.service.RedirectLinkService;
 import com.shorthand.backend.domain.port.inbound.CreateLinkUseCase;
+import com.shorthand.backend.domain.port.inbound.RedirectLinkUseCase;
+import com.shorthand.backend.domain.port.outbound.LinkCachePort;
 import com.shorthand.backend.domain.port.outbound.LinkIdentifierPort;
 import com.shorthand.backend.domain.port.outbound.LinkRepository;
 import com.shorthand.backend.infrastructure.adapter.outbound.generator.Base62Encoder;
@@ -22,6 +25,11 @@ public class ApplicationConfig {
     @Bean
     public CreateLinkUseCase createLinkUseCase(LinkRepository linkRepository, LinkIdentifierPort linkIdentifierPort) {
         return new CreateLinkService(linkRepository, linkIdentifierPort, shorthandProperties.link().defaultExpiryDays());
+    }
+
+    @Bean
+    public RedirectLinkUseCase redirectLinkUseCase(LinkCachePort linkCachePort, LinkRepository linkRepository) {
+        return new RedirectLinkService(linkCachePort, linkRepository);
     }
 
     @Bean
