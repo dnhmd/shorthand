@@ -1,3 +1,37 @@
+# Spring Properties
 spring:
   application:
     name: backend
+  profiles:
+    active: local
+
+# Database Configuration (PostgreSQL)
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/shorthand_db}
+    username: ${DB_USERNAME:shorthand_user}
+    password: ${DB_PASSWORD:shorthand_password}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+# Data Configurations
+  data:
+    jpa:
+      repositories:
+        bootstrap-mode: default
+
+# Link Creation Properties
+shorthand:
+  link:
+    default-expiry-days: ${DEFAULT_EXPIRY_DAYS:7}
+  snowflake:
+    machine-id: ${DEFAULT_MACHINE_ID:1}
