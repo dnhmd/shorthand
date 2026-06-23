@@ -33,5 +33,6 @@ spring:
 shorthand:
   link:
     default-expiry-days: ${DEFAULT_EXPIRY_DAYS:7}
+    base-url: ${BASE_URL:http://localhost:8080/}
   snowflake:
     machine-id: ${DEFAULT_MACHINE_ID:1}

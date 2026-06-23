@@ -7,6 +7,6 @@ public record ShorthandProperties(
         LinkProperties link,
         SnowflakeProperties snowflake
 ) {
-    public record LinkProperties(int defaultExpiryDays) {}
+    public record LinkProperties(int defaultExpiryDays, String baseUrl) {}
     public record SnowflakeProperties(long machineId) {}
 }
