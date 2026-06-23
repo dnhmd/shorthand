@@ -8,4 +8,8 @@ public record Link(
     String originalUrl,
     Instant createdAt,
     Instant expiresAt
-) {}
+) {
+    public boolean isExpired() {
+        return expiresAt != null && Instant.now().isAfter(expiresAt);
+    }
+}
