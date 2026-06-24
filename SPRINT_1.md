@@ -12,7 +12,7 @@ Build a high-performance URL shortening and redirection service capable of sub-m
 
 The project is structured around strict layer separation:
 
-- **Domain** — pure Java, zero framework dependencies. Contains the `Link` model, inbound/outbound port interfaces, domain exceptions, and the Base62 encoder.
+- **Domain** — pure Java, zero framework dependencies. Contains the `Link` model, inbound/outbound port interfaces, and domain exceptions.
 - **Application** — use case implementations (`CreateLinkService`, `RedirectLinkService`). Depends only on domain ports, never on infrastructure.
 - **Infrastructure** — Spring, JPA, Redis, and web adapters. The only layer allowed to import framework-specific code.
 
