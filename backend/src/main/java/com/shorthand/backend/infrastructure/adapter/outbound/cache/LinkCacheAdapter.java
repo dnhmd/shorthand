@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.shorthand.backend.domain.model.Link;
 import com.shorthand.backend.domain.port.outbound.LinkCachePort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -12,6 +14,8 @@ import java.util.Optional;
 
 @Component
 public class LinkCacheAdapter implements LinkCachePort {
+
+    private static final Logger log = LoggerFactory.getLogger(LinkCacheAdapter.class);
 
     private final RedisTemplate<String, String> redisTemplate;
     private final ObjectMapper objectMapper;
@@ -27,7 +31,8 @@ public class LinkCacheAdapter implements LinkCachePort {
         if (json == null) return Optional.empty();
         try {
             return Optional.of(objectMapper.readValue(json, Link.class));
-        } catch (JsonProcessingException e) {
+        } catch (JsonProcessingException ex) {
+            log.error("Cache serialization error: [Code: {}, Operation: get]", code, ex);
             return Optional.empty();
         }
     }
@@ -37,8 +42,8 @@ public class LinkCacheAdapter implements LinkCachePort {
         try {
             String json = objectMapper.writeValueAsString(link);
             redisTemplate.opsForValue().set(code, json, ttl);
-        } catch (JsonProcessingException e) {
-            // @TODO - Log  & swallow - cache failure should not break the flow
+        } catch (JsonProcessingException ex) {
+            log.error("Cache serialization error: [Code: {}, Operation: put]", code, ex);;
         }
     }
 }
