@@ -1,5 +1,7 @@
 package com.shorthand.backend.application.service;
 
+import com.shorthand.backend.domain.exception.LinkExpiredException;
+import com.shorthand.backend.domain.exception.LinkNotFoundException;
 import com.shorthand.backend.domain.model.Link;
 import com.shorthand.backend.domain.port.inbound.RedirectLinkUseCase;
 import com.shorthand.backend.domain.port.outbound.LinkCachePort;
@@ -41,12 +43,12 @@ public class RedirectLinkService implements RedirectLinkUseCase {
             return link.originalUrl();
         }
 
-        throw new RuntimeException("Link Unavailable");
+        throw new LinkNotFoundException("Link Unavailable");
     }
 
     private void checkExpiry(String code, Link link) {
         if (link.isExpired()) {
-            throw new RuntimeException("Link Expired");
+            throw new LinkExpiredException("Link Expired");
         }
     }
 }
