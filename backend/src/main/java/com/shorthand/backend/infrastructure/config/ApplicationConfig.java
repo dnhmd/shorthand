@@ -5,6 +5,7 @@ import com.shorthand.backend.application.service.RedirectLinkService;
 import com.shorthand.backend.domain.port.inbound.CreateLinkUseCase;
 import com.shorthand.backend.domain.port.inbound.RedirectLinkUseCase;
 import com.shorthand.backend.domain.port.outbound.LinkCachePort;
+import com.shorthand.backend.domain.port.outbound.LinkClickEventPublisherPort;
 import com.shorthand.backend.domain.port.outbound.LinkIdentifierPort;
 import com.shorthand.backend.domain.port.outbound.LinkRepository;
 import com.shorthand.backend.infrastructure.adapter.outbound.generator.Base62Encoder;
@@ -28,8 +29,8 @@ public class ApplicationConfig {
     }
 
     @Bean
-    public RedirectLinkUseCase redirectLinkUseCase(LinkCachePort linkCachePort, LinkRepository linkRepository) {
-        return new RedirectLinkService(linkCachePort, linkRepository);
+    public RedirectLinkUseCase redirectLinkUseCase(LinkCachePort linkCachePort, LinkRepository linkRepository, LinkClickEventPublisherPort linkClickEventPublisherPort) {
+        return new RedirectLinkService(linkCachePort, linkRepository, linkClickEventPublisherPort);
     }
 
     @Bean
