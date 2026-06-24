@@ -28,10 +28,18 @@ spring:
     jpa:
       repositories:
         bootstrap-mode: default
+  # Cache Tier Configuration
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       timeout: 60000
+
+# Message Queue Configuration
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
 
 # Link Creation Properties
 shorthand:
@@ -40,3 +48,11 @@ shorthand:
     base-url: ${BASE_URL:http://localhost:8080/}
   snowflake:
     machine-id: ${DEFAULT_MACHINE_ID:1}
+  kafka:
+    topic: ${KAFKA_TOPIC:link-click-events}
+
+# Logging Configurations
+logging:
+  level:
+    org.apache.kafka: WARN
+    org.apache.kafka.clients.producer.ProducerConfig: ERROR

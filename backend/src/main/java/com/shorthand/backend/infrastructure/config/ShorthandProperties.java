@@ -5,8 +5,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "shorthand")
 public record ShorthandProperties(
         LinkProperties link,
-        SnowflakeProperties snowflake
+        SnowflakeProperties snowflake,
+        KafkaProperties kafka
 ) {
     public record LinkProperties(int defaultExpiryDays, String baseUrl) {}
     public record SnowflakeProperties(long machineId) {}
+    public record KafkaProperties(String topic) {}
 }
