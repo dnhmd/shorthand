@@ -43,9 +43,9 @@ spring:
 
 # Server Configuration
 server:
-  port: 8081
+  port: 8080
 
-# Link Creation Properties
+# Application Properties
 shorthand:
   link:
     default-expiry-days: ${DEFAULT_EXPIRY_DAYS:7}
