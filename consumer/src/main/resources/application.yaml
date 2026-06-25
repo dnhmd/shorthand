@@ -47,4 +47,4 @@ shorthand:
 logging:
   level:
     org.apache.kafka: WARN
-    org.apache.kafka.clients.producer.ProducerConfig: ERROR
+    com.shorthand.consumer: DEBUG
