@@ -1,4 +1,4 @@
--- V1: Initial Links Table Structure for Shorthand
+-- V1: Initial Links Table Structure | Public Schema | Backend Service
 CREATE TABLE links (
     id BIGINT PRIMARY KEY,
     code VARCHAR(15) NOT NULL UNIQUE,

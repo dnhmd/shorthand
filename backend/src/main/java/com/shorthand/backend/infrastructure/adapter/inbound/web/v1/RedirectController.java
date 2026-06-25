@@ -25,9 +25,27 @@ public class RedirectController {
     @GetMapping("{code}")
     public ResponseEntity<Void>redirect(HttpServletRequest request, @PathVariable("code") String code) {
         Instant now = Instant.now();
-        String ipAddress = request.getRemoteAddr();
-        String userAgent = request.getHeader("User-Agent");
+        String ipAddress = getClientIpAddress(request);
+        String userAgent = getUserAgent(request);
         String link = redirectLinkUseCase.redirect(code, ipAddress, userAgent, now);
         return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(link)).build();
+    }
+
+    private static String getClientIpAddress(HttpServletRequest request) {
+        String ipAddress = request.getHeader("X-Forwarded-For");
+        if (ipAddress == null || ipAddress.isEmpty() || "unknown".equalsIgnoreCase(ipAddress)) {
+            ipAddress = request.getRemoteAddr();
+        } else {
+            ipAddress = ipAddress.split(",")[0].trim();
+        }
+        return ipAddress;
+    }
+
+    private static String getUserAgent(HttpServletRequest request) {
+        String userAgent = request.getHeader("User-Agent");
+        if (userAgent == null || userAgent.isBlank()) {
+            userAgent = "Unknown";
+        }
+        return userAgent;
     }
 }
