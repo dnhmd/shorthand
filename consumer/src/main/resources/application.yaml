@@ -37,3 +37,14 @@ spring:
 # Server Configuration
 server:
   port: 8081
+
+# Application Properties
+shorthand:
+  kafka:
+    topic: ${KAFKA_TOPIC:link-click-events}
+
+# Logging Configurations
+logging:
+  level:
+    org.apache.kafka: WARN
+    org.apache.kafka.clients.producer.ProducerConfig: ERROR
