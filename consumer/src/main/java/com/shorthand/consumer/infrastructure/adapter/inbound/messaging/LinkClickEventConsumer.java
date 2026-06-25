@@ -27,9 +27,9 @@ public class LinkClickEventConsumer {
         try {
             LinkClickEvent linkClickEvent = objectMapper.readValue(jsonLinkClickEvent, LinkClickEvent.class);
             processClickEventUseCase.processClickEvent(linkClickEvent);
-            log.info("Click Event Saved: [Code: {}]", linkClickEvent.code());
+            log.debug("Kafka Consume | Code: {} | Click Event Processed & Saved", linkClickEvent.code());
         } catch (JsonProcessingException ex) {
-            log.error("Failed to deserialize click event: {}", ex.getMessage());
+            log.error("Kafka Consume | Deserialization Error", ex);
         }
     }
 }

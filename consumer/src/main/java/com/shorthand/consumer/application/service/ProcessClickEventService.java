@@ -6,8 +6,12 @@ import com.shorthand.consumer.domain.port.inbound.ProcessClickEventUseCase;
 import com.shorthand.consumer.domain.port.outbound.ClickEventRepository;
 import nl.basjes.parse.useragent.UserAgent;
 import nl.basjes.parse.useragent.UserAgentAnalyzer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ProcessClickEventService implements ProcessClickEventUseCase {
+
+    private static final Logger log = LoggerFactory.getLogger(ProcessClickEventService.class);
 
     private final UserAgentAnalyzer userAgentAnalyzer;
     private final ClickEventRepository clickEventRepository;
@@ -31,6 +35,9 @@ public class ProcessClickEventService implements ProcessClickEventUseCase {
                 linkClickEvent.userAgent(),
                 linkClickEvent.clickedAt()
         );
+
+        log.debug("Click Event | Code: {} | Enriched & Processed", clickEvent.linkCode());
         clickEventRepository.save(clickEvent);
+        log.debug("Click Event | Code: {} | Saved", clickEvent.linkCode());
     }
 }
