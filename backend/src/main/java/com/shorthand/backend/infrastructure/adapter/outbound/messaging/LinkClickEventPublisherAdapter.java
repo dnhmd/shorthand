@@ -37,13 +37,13 @@ public class LinkClickEventPublisherAdapter implements LinkClickEventPublisherPo
             CompletableFuture<SendResult<String, String>> future = kafkaTemplate.send(shorthandProperties.kafka().topic(), event.code(), jsonMessage);
             future.whenCompleteAsync((result, ex) -> {
                 if (ex == null) {
-                    log.debug("LinkClickEvent Published: [Code: {}]", event.code());
+                    log.debug("Kafka Publish | Code: {} | Success", event.code());
                 } else {
-                    log.warn("LinkClickEvent Publish Failed: [Code: {}, Error: {}]", event.code(), ex.getMessage());
+                    log.warn("Kafka Publish | Code: {} | Failed | Error: {}", event.code(), ex.getMessage());
                 }
             });
         } catch (JsonProcessingException ex) {
-            log.error("JSON Serialization Failed: {}", ex.getMessage());
+            log.error("Kafka Publish | Serialization Error", ex);
         }
     }
 }

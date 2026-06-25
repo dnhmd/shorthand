@@ -61,7 +61,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGlobalException(Exception ex, WebRequest request) {
         // ex.printStackTrace();
-        log.error("Unhandled exception", ex);
+        log.error("Exception | Unhandled", ex);
         return new ResponseEntity<>(new ErrorResponse(
                 Instant.now(),
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
@@ -71,6 +71,6 @@ public class GlobalExceptionHandler {
     }
 
     private static void logWarning(Exception ex) {
-        log.warn("Exception caught: [Type: {}, Message: {}]", ex.getClass().getSimpleName(), ex.getMessage());
+        log.warn("Exception | Type: {} | Message: {}", ex.getClass().getSimpleName(), ex.getMessage());
     }
 }

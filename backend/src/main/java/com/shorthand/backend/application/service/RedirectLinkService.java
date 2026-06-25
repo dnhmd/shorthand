@@ -39,7 +39,7 @@ public class RedirectLinkService implements RedirectLinkUseCase {
             publishLinkClickEvent(code, ipAddress, userAgent, now);
             return link.originalUrl();
         } else {
-            log.debug("Link redirection: [Code: {}, Status: Cache Miss]", code);
+            log.debug("Link Redirect | Code: {} | Cache Miss", code);
         }
 
         Optional<Link> dbLink = linkRepository.findByCode(code);
@@ -50,11 +50,11 @@ public class RedirectLinkService implements RedirectLinkUseCase {
             linkCachePort.put(code, link, ttl);
 
             publishLinkClickEvent(code, ipAddress, userAgent, now);
-            log.debug("Link redirection: [Code: {}, Status: Link in DB]", code);
+            log.debug("Link Redirect | Code: {} | Found in DB", code);
             return link.originalUrl();
         }
 
-        log.warn("Link redirection: [Code: {}, Status: Link Unavailable]", code);
+        log.warn("Link Redirect | Code: {} | Not Found", code);
         throw new LinkNotFoundException("Link Unavailable");
     }
 
@@ -69,7 +69,7 @@ public class RedirectLinkService implements RedirectLinkUseCase {
 
     private void checkExpiry(String code, Link link) {
         if (link.isExpired()) {
-            log.warn("Link redirection: [Code: {}, Status: Link Expired]", code);
+            log.warn("Link Redirect | Code: {} | Expired", code);
             throw new LinkExpiredException("Link Expired");
         }
     }

@@ -32,7 +32,7 @@ public class LinkCacheAdapter implements LinkCachePort {
         try {
             return Optional.of(objectMapper.readValue(json, Link.class));
         } catch (JsonProcessingException ex) {
-            log.error("Cache serialization error: [Code: {}, Operation: get]", code, ex);
+            log.error("Cache | Code: {} | Serialization Error (get)", code, ex);
             return Optional.empty();
         }
     }
@@ -43,7 +43,7 @@ public class LinkCacheAdapter implements LinkCachePort {
             String json = objectMapper.writeValueAsString(link);
             redisTemplate.opsForValue().set(code, json, ttl);
         } catch (JsonProcessingException ex) {
-            log.error("Cache serialization error: [Code: {}, Operation: put]", code, ex);;
+            log.error("Cache | Code: {} | Serialization Error (put)", code, ex);;
         }
     }
 }
