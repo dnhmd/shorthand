@@ -34,3 +34,6 @@ build/
 
 ### Local Secrets ###
 application-local.yml
+
+### Binary Database ###
+bin
