@@ -4,6 +4,7 @@ import com.shorthand.common.event.LinkClickEvent;
 import com.shorthand.consumer.domain.model.ClickEvent;
 import com.shorthand.consumer.domain.port.inbound.ProcessClickEventUseCase;
 import com.shorthand.consumer.domain.port.outbound.ClickEventRepository;
+import com.shorthand.consumer.infrastructure.adapter.outbound.geoip.GeoIpAdapter;
 import nl.basjes.parse.useragent.UserAgent;
 import nl.basjes.parse.useragent.UserAgentAnalyzer;
 import org.slf4j.Logger;
@@ -14,10 +15,12 @@ public class ProcessClickEventService implements ProcessClickEventUseCase {
     private static final Logger log = LoggerFactory.getLogger(ProcessClickEventService.class);
 
     private final UserAgentAnalyzer userAgentAnalyzer;
+    private final GeoIpAdapter geoIpAdapter;
     private final ClickEventRepository clickEventRepository;
 
-    public ProcessClickEventService(UserAgentAnalyzer userAgentAnalyzer, ClickEventRepository clickEventRepository) {
+    public ProcessClickEventService(UserAgentAnalyzer userAgentAnalyzer, GeoIpAdapter geoIpAdapter, ClickEventRepository clickEventRepository) {
         this.userAgentAnalyzer = userAgentAnalyzer;
+        this.geoIpAdapter = geoIpAdapter;
         this.clickEventRepository = clickEventRepository;
     }
 
@@ -28,7 +31,7 @@ public class ProcessClickEventService implements ProcessClickEventUseCase {
         ClickEvent clickEvent = new ClickEvent(
                 linkClickEvent.code(),
                 linkClickEvent.ipAddress(),
-                null,
+                geoIpAdapter.resolveCountry(linkClickEvent.ipAddress()),
                 userAgent.getValue("DeviceName"),
                 userAgent.getValue("OperatingSystemNameVersion"),
                 userAgent.getValue("AgentNameVersion"),
