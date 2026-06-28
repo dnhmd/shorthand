@@ -27,13 +27,15 @@ public class ProcessClickEventService implements ProcessClickEventUseCase {
     @Override
     public void processClickEvent(LinkClickEvent linkClickEvent) {
         UserAgent userAgent = userAgentAnalyzer.parse(linkClickEvent.userAgent());
+        String os = userAgent.getValue("OperatingSystemNameVersion");
+        if (os.contains("??")) os = "Unknown";
 
         ClickEvent clickEvent = new ClickEvent(
                 linkClickEvent.code(),
                 linkClickEvent.ipAddress(),
                 geoIpAdapter.resolveCountry(linkClickEvent.ipAddress()),
                 userAgent.getValue("DeviceName"),
-                userAgent.getValue("OperatingSystemNameVersion"),
+                os,
                 userAgent.getValue("AgentNameVersion"),
                 linkClickEvent.userAgent(),
                 linkClickEvent.clickedAt()
