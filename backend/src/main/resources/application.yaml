@@ -54,6 +54,10 @@ shorthand:
     machine-id: ${DEFAULT_MACHINE_ID:1}
   kafka:
     topic: ${KAFKA_TOPIC:link-click-events}
+  rate-limiter:
+    capacity: ${RATE_LIMITER_CAPACITY:10}
+    refill-rate: ${RATE_LIMITER_REFILL_RATE:0.1}
+    key-prefix: ${RATE_LIMITER_KEY_PREFIX:rate-limit}
 
 # Logging Configurations
 logging:
