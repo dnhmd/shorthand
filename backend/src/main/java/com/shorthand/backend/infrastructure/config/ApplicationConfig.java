@@ -13,6 +13,13 @@ import com.shorthand.backend.infrastructure.adapter.outbound.generator.LinkIdent
 import com.shorthand.backend.infrastructure.adapter.outbound.generator.SnowflakeIdGenerator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.data.redis.core.script.RedisScript;
+import org.springframework.data.redis.serializer.GenericToStringSerializer;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 @Configuration
 public class ApplicationConfig {
@@ -46,5 +53,13 @@ public class ApplicationConfig {
     @Bean
     public LinkIdentifierPort linkIdentifierPort(SnowflakeIdGenerator snowflakeIdGenerator, Base62Encoder base62Encoder) {
         return new LinkIdentifierAdapter(snowflakeIdGenerator, base62Encoder);
+    }
+
+    @Bean
+    public RedisScript<Long> rateLimitScript() {
+        DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+        script.setLocation(new ClassPathResource("scripts/rate_limiter.lua"));
+        script.setResultType(Long.class);
+        return script;
     }
 }
