@@ -36,4 +36,4 @@ build/
 application-local.yml
 
 ### Binary Database ###
-bin
+utils/bin

@@ -41,7 +41,7 @@ server:
 # Application Properties
 shorthand:
   geo-ip:
-    database-path: ${GEOIP_DATABASE_PATH:../bin/geo-ip/GeoLite2-Country.mmdb}
+    database-path: ${GEOIP_DATABASE_PATH:..utils/bin/geo-ip/GeoLite2-Country.mmdb}
   kafka:
     topic: ${KAFKA_TOPIC:link-click-events}
 
