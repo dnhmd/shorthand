@@ -1,6 +1,8 @@
 package com.shorthand.backend.infrastructure.adapter.inbound.web.v1;
 
 import com.shorthand.backend.domain.port.inbound.RedirectLinkUseCase;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.net.URI;
 import java.time.Instant;
 
+@Tag(name = "Redirection", description = "Resolve short codes to their original URLs")
 @RestController
 @RequestMapping("/")
 public class RedirectController {
@@ -22,6 +25,7 @@ public class RedirectController {
         this.redirectLinkUseCase = redirectLinkUseCase;
     }
 
+    @Operation(summary = "Redirect to Original URL", description = "Looks up the short code in cache then database, fires an async analytics event, and returns a 302 redirect")
     @GetMapping("{code}")
     public ResponseEntity<Void>redirect(HttpServletRequest request, @PathVariable("code") String code) {
         Instant now = Instant.now();
