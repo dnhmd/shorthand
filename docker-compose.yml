@@ -56,6 +56,52 @@ services:
     networks:
       - shorthand-network
 
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: shorthand-backend
+    depends_on:
+      - postgres
+      - redis
+      - zookeeper
+      - kafka
+    ports:
+      - "8080:8080"
+    environment:
+      DB_URL: jdbc:postgresql://shorthand-postgres:5432/shorthand_db
+      DB_USERNAME: shorthand_user
+      DB_PASSWORD: shorthand_password
+      REDIS_HOST: shorthand-redis
+      REDIS_PORT: 6379
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    networks:
+      - shorthand-network
+
+  consumer:
+    build:
+      context: ./consumer
+      dockerfile: Dockerfile
+    container_name: shorthand-consumer
+    depends_on:
+      - postgres
+      - redis
+      - zookeeper
+      - kafka
+      - backend
+    ports:
+      - "8081:8081"
+    environment:
+      DB_URL: jdbc:postgresql://shorthand-postgres:5432/shorthand_db
+      DB_USERNAME: shorthand_user
+      DB_PASSWORD: shorthand_password
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      GEOIP_DATABASE_PATH: /app/utils/bin/geo-ip/GeoLite2-Country.mmdb
+    volumes:
+      - ./utils/bin/geo-ip:/app/utils/bin/geo-ip
+    networks:
+      - shorthand-network
+
 volumes:
   postgres_data:
   redis_data:
