@@ -38,6 +38,10 @@ spring:
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     producer:
+      properties:
+        delivery.timeout.ms: 5000
+        request.timeout.ms: 3000
+        max.block.ms: 3000
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
 
@@ -65,3 +69,15 @@ logging:
     org.apache.kafka: WARN
     org.apache.kafka.clients.producer.ProducerConfig: ERROR
     com.shorthand.backend: DEBUG
+
+# Circuit Breaker Configurations
+resilience4j:
+  circuit-breaker:
+    instances:
+      kafka-publisher:
+        failure-rate-threshold: 50
+        minimum-number-of-calls: 5
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
+        sliding-window-size: 10
+        sliding-window-type: COUNT_BASED

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.shorthand.backend.domain.port.outbound.LinkClickEventPublisherPort;
 import com.shorthand.backend.infrastructure.config.ShorthandProperties;
 import com.shorthand.common.event.LinkClickEvent;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -30,6 +31,7 @@ public class LinkClickEventPublisherAdapter implements LinkClickEventPublisherPo
     }
 
     @Async
+    @CircuitBreaker(name = "kafka-publisher", fallbackMethod = "publishFallback")
     @Override
     public void publishMessage(LinkClickEvent event) {
         try {
@@ -45,5 +47,10 @@ public class LinkClickEventPublisherAdapter implements LinkClickEventPublisherPo
         } catch (JsonProcessingException ex) {
             log.error("Kafka Publish | Serialization Error", ex);
         }
+    }
+
+    private void publishFallback(LinkClickEvent event, Throwable throwable) {
+        log.warn("Kafka Circuit Breaker | Code: {} | Kafka Unavailable | Error: {}",
+                event.code(), throwable.getMessage());
     }
 }
