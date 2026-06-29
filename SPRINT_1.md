@@ -1,34 +1,37 @@
-# Sprint 1 — The Core Routing Service & Data Layer
+# The Core Routing Service & Data Layer
 
 ## Objective
 
-Build a high-performance URL shortening and redirection service capable of sub-millisecond response times on cache hits, with a clean, maintainable architecture that can scale into an analytics platform in subsequent sprints.
+The goal of this sprint was to build a high-performance URL shortening and redirection service that delivers sub-millisecond response times on cache hits. We focus heavily on establishing a clean, modular architecture from day one, ensuring the core routing logic is completely decoupled and ready to scale into an event-driven analytics platform in the upcoming sprints.
 
 ---
 
-## Architecture
+## Architecture & Design Philosophy
 
-### Hexagonal Architecture (Ports & Adapters)
+### Hexagonal Architecture
 
-The project is structured around strict layer separation:
+To prevent framework lock-in and keep the core business logic predictable, we structure the project around a strict Hexagonal architecture. The boundaries are enforced as follows:
 
-- **Domain** — pure Java, zero framework dependencies. Contains the `Link` model, inbound/outbound port interfaces, and domain exceptions.
-- **Application** — use case implementations (`CreateLinkService`, `RedirectLinkService`). Depends only on domain ports, never on infrastructure.
-- **Infrastructure** — Spring, JPA, Redis, and web adapters. The only layer allowed to import framework-specific code.
-
+- **Domain:** Written in pure, framework-agnostic Java. It owns the core `Link` model, inbound/outbound port interfaces, and custom business exceptions.
+- **Application:** Implements the core use cases (`CreateLinkService`, `RedirectLinkService`). It talks exclusively to domain ports and remains entirely unaware of how data is stored or exposed.
+- **Infrastructure:** Houses the heavy lifting. Spring Boot, JPA, Redis, and HTTP adapters. This is the _only_ layer permitted to import external framework code.
 Dependency arrows point inward. Infrastructure knows about the application layer. The application layer knows nothing about infrastructure.
 
-### Key Design Decisions
+Because dependency arrows point strictly inward, the infrastructure layer adapts to the application layer, while the core business logic remains entirely isolated and easily testable.
 
-- **No `@Service` on application services** — they are manually constructed as `@Bean` instances in `ApplicationConfig`. This keeps Spring annotations out of the application layer entirely.
-- **DTOs never cross the adapter boundary** — `CreateLinkRequest` and `CreateLinkResponse` live in the web adapter. Mappers translate at the boundary before the use case is ever called.
-- **Configuration injected as primitives** — `CreateLinkService` receives `defaultExpiryDays` as a plain `int`, not a `@ConfigurationProperties` class. The service stays framework-agnostic.
+### Pragmatic Decisions for True Decoupling
+
+- **Zero Spring Annotations in Core Logic:** We intentionally keep `@Service` annotations out of the application layer. Instead, services are wired manually as `@Bean` instances within `ApplicationConfig`. This keeps the core logic independent of the Spring container.
+- **DStrict Adapter Boundaries:** Data Transfer Objects (DTOs) like `CreateLinkRequest` and `CreateLinkResponse` never leak into the application layer. Translation happens strictly at the HTTP boundary via mappers before the use case is invoked.
+- **Primitive Configuration Injection:** Instead of passing heavy `@ConfigurationProperties` objects deep into the business logic, configurations (like `defaultExpiryDays`) is injected as plain primitives.
 
 ---
 
 ## What Was Built
 
-### Task 1 — Clean Architecture
+### 1. Project Layout & Clean Boundaries
+
+The codebase is organized to clearly separate concerns, making it easy for any developer to navigate:
 
 ```
 domain/
@@ -53,50 +56,52 @@ infrastructure/
   config/        ApplicationConfig, ShorthandProperties
 ```
 
-### Task 2 — ID Generation
+### 2. High-Scale ID Generation
 
-- **Snowflake ID** — 64-bit time-ordered ID composed of a 41-bit timestamp, 10-bit machine ID, and 12-bit sequence counter. Guarantees 4096 unique IDs per millisecond per node with no coordination overhead. Machine ID is externally configurable.
-- **Base62 Encoding** — encodes the Snowflake ID into a short alphanumeric string (`[0-9A-Za-z]`). Produces clean, collision-free short codes without random UUIDs.
+To handle massive throughput without relying on database-generated sequences or bulky UUIDs, We implement a two-part ID generation strategy:
 
-### Task 3 — Cache-Aside Redirection
+- **Snowflake IDs:** A 64-bit, time-ordered identifier (41-bit timestamp, 10-bit worker ID, 12-bit sequence). This allows the service to generate up to 4,096 unique, collision-free IDs per millisecond per node without any internode coordination overhead.
+- **Base62 Encoding:** The resulting Snowflake ID is encoded into a short, clean alphanumeric string (`[0-9A-Za-z]`), giving us highly optimized, user-friendly short URLs.
 
-Redirection endpoint: `GET /{code}` → `302 Found`
+### Cache-Based Redirection
 
-Cache-Aside sequence:
-1. Check Redis for the short code — O(1) lookup
-2. **Cache hit** → return `originalUrl`, redirect immediately
-3. **Cache miss** → query PostgreSQL, populate Redis with TTL equal to the link's remaining lifetime, redirect
+The redirection endpoint (`GET /{code}`) is optimized to return a `302 Found` status with minimal latency using a classic Cache-Aside approach:
 
-TTL is computed as `Duration.between(Instant.now(), link.expiresAt())` — cache entries never outlive their links.
+1. **Look Up Short Code:** Hit Redis for an _O_(1) lookup.
+2. **Cache Hit:** Immediately return the `originalUrl` and redirect the user. 
+3. **Cache Miss:** Fall back to PostgreSQL, stream the record, populate Redis with calculated dynamic TTL (`Duration.between(Instant.now(), link.expiresAt())`), and then redirect.
 
----
-
-## Additional Work
-
-- **Domain exceptions** — `LinkNotFoundException` (404), `LinkExpiredException` (410 Gone)
-- **Global exception handler** — `@RestControllerAdvice` with structured `ErrorResponse` (timestamp, status, error, message). Catch-all handler prevents stack traces leaking to clients.
-- **Structured logging** — Logstash JSON encoder for production, human-readable pattern for local. Profile-based via `logback-spring.xml`. Trace ID propagation via Micrometer.
-- **Flyway migrations** — schema versioned from V1. JPA set to `validate` mode — Hibernate never touches the schema.
+_Note: Calculating the TTL dynamically ensures that cache entries naturally expire at the exact moment the link becomes invalid, preventing stale data overhead._
 
 ---
 
-## Infrastructure
+## Enhancements
 
-- PostgreSQL 16 — primary data store
-- Redis 7.2 — cache layer
-- All infrastructure managed via Docker Compose
+- **Robust Exception Handling:** Business exceptions map directly to semantic HTTP statuses (e.g., `LinkNotFoundException` yields a `404 Not Found`, and `LinkExpiredException` returns a `410 Gone`). A `@RestControllerAdvice` interceptor structures these cleanly while preventing raw stack traces from leaking to the client.
+- **Observability & Structured Logging:** Configured a profile-based logging system using Logstash to output JSON in production (for easy log aggregation) and human-readable lines locally. Distributed tracing is handled via Micrometer to ensure trace IDs propagate flawlessly across boundaries.
+- **Reliable Schema Evolution:** Integrated Flyway to manage schema migrations cleanly. Hibernate's DDL generation is set to `validate` mode, ensuring production schemas are strictly controlled via versioned SQL scripts rather than automated ORM guesswork.
 
 ---
 
-## What's Next — Sprint 2
+## Infrastructure Stack
+
+The entire local environment is containerized and spun up instantly via Docker Compose:
+- PostgreSQL 16 as our reliable source of truth.
+- Redis 7.2 acting as our high-speed caching tier.
+
+---
+
+## Next Steps
 
 **The Event-Driven Analytics Pipeline**
 
-Every redirect will fire a `LinkClickEvent` asynchronously via `@Async` — the 302 response is never blocked. The event carries raw metadata (IP address, User-Agent, timestamp) and is published to a Kafka topic.
+With the core routing layer stabilized, the next phase is capturing real-time metrics without degrading redirection performance.
 
-A standalone consumer microservice will subscribe to the topic, enrich events (IP → country, User-Agent → device type), and write to a time-series optimised analytics schema in PostgreSQL.
+1. **Asynchronous Telemetry:** Every redirect will trigger a `LinkClickEvent` handled off the main request thread via Spring's `@Async` framework, ensuring the `302` response remains lightning fast.
+2. **Message Brokering:** These events (containing metadata like IP, User-Agent, and timestamps) will be pushed directly to a Kafka topic.
+3. **Dedicated Ingestion:** A standalone consume microservice will be introduced to ingest these events, enrich them (e.g., parsing IPs into countries and User-Agents into device types), and write them to a time-series optimized schema in Postgres.
 
-The project will evolve into a multi-module Maven structure:
-- `backend` — the core routing service (this module)
-- `consumer` — the analytics consumer microservice
-- `common` — shared event schema (`LinkClickEvent`)
+To support this ecosystem, the project will transition into a multi-module Maven build:
+- `backend`: The core redirection engine built in this sprint.
+- `consumer`: The new analytical worker service.
+- `common`: A shared module holding our event contracts (`LinkClickEvent`).
