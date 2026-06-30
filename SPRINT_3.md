@@ -84,7 +84,7 @@ _Requests breaking the configured capacity threshold are immediately rejected wi
 ### 4. PostgreSQL Table Partitioning
 
 To maintain responsive query timelines as analytical volume expands, `analytics.click_events` was converted from a standard table to a range-partitioned database layout structured around the `clicked_at` timestamp.
-- **Schema Inversion:** Migration scripts safely recreate the core table with a explicit `PARTITION BY RANGE (clicked_at)` directive.
+- **Schema Inversion:** Migration scripts safely recreate the core table with an explicit `PARTITION BY RANGE (clicked_at)` directive.
 - **Constraints:** Primary keys are adjusted to use a composite pairing of (`id, clicked_at`), with the timestamp strictly marked as `NOT NULL` to comply with PostgreSQL's partitioning rules.
 - **Time Windows:** Monthly physical storage boundaries are generated upfront (e.g., `click_events_2026_06`, `click_events_2026_07`).
 
@@ -121,7 +121,7 @@ COPY target/*.jar app.jar
 ENTRYPOINT ["java", "-jar", "app.jar"]
 ```
 
-- **Orchestration Matrix:** The single-command setup coordinates PostgreSQL 16 (mapping segregated schemas), Redis 7.2, Kafka, Zookeeper, the backend core, and the analytical consumer over a isolated network (`shorthand-network`). The GeoIP binaries are linked to the consumer container through an isolated bind volume mount.
+- **Orchestration Matrix:** The single-command setup coordinates PostgreSQL 16 (mapping segregated schemas), Redis 7.2, Kafka, Zookeeper, the backend core, and the analytical consumer over an isolated network (`shorthand-network`). The GeoIP binaries are linked to the consumer container through an isolated bind volume mount.
 - **Interactive Documentation:** Springdoc OpenAPI auto-generates interactive API playgrounds accessible via the standard Swagger UI path (`/swagger-ui/index.html`) on both operational ports (`8080` for backend routing, `8081` for analytics exploration).
 
 ---
