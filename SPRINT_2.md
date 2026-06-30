@@ -95,7 +95,7 @@ Common approaches like relying on filters or interceptors store request metadata
 The entire local ecosystem is managed via a shared Docker network (`shorthand-network`):
 - **PostgreSQL 16:** Segregated into a `public` schema for the backend core and an `analytics` schema for the consumer data.
 - **Redis 7.2:** Serving as the high-speed caching tier for the core router.
-- **Kafka + Zookeeper** Acting as our high-throughput message streaming backbone.
+- **Kafka + Zookeeper:** Acting as our high-throughput message streaming backbone.
 
 ---
 
