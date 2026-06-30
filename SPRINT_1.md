@@ -58,9 +58,9 @@ infrastructure/
 
 ### 2. High-Scale ID Generation
 
-To handle massive throughput without relying on database-generated sequences or bulky UUIDs, We implement a two-part ID generation strategy:
+To handle massive throughput without relying on database-generated sequences or bulky UUIDs, we implement a two-part ID generation strategy:
 
-- **Snowflake IDs:** A 64-bit, time-ordered identifier (41-bit timestamp, 10-bit worker ID, 12-bit sequence). This allows the service to generate up to 4,096 unique, collision-free IDs per millisecond per node without any internode coordination overhead.
+- **Snowflake IDs:** A 64-bit, time-ordered identifier (41-bit timestamp, 10-bit worker ID, 12-bit sequence). This allows the service to generate up to 4,096 unique, collision-free IDs per millisecond per node without any inter-node coordination overhead.
 - **Base62 Encoding:** The resulting Snowflake ID is encoded into a short, clean alphanumeric string (`[0-9A-Za-z]`), giving us highly optimized, user-friendly short URLs.
 
 ### Cache-Based Redirection
@@ -71,7 +71,7 @@ The redirection endpoint (`GET /{code}`) is optimized to return a `302 Found` st
 2. **Cache Hit:** Immediately return the `originalUrl` and redirect the user. 
 3. **Cache Miss:** Fall back to PostgreSQL, stream the record, populate Redis with calculated dynamic TTL (`Duration.between(Instant.now(), link.expiresAt())`), and then redirect.
 
-_Note: Calculating the TTL dynamically ensures that cache entries naturally expire at the exact moment the link becomes invalid, preventing stale data overhead._
+_Note: Dynamically calculating the TTL ensures that cache entries naturally expire at the exact moment the link becomes invalid, preventing stale data overhead._
 
 ---
 
@@ -99,7 +99,7 @@ With the core routing layer stabilized, the next phase is capturing real-time me
 
 1. **Asynchronous Telemetry:** Every redirect will trigger a `LinkClickEvent` handled off the main request thread via Spring's `@Async` framework, ensuring the `302` response remains lightning fast.
 2. **Message Brokering:** These events (containing metadata like IP, User-Agent, and timestamps) will be pushed directly to a Kafka topic.
-3. **Dedicated Ingestion:** A standalone consume microservice will be introduced to ingest these events, enrich them (e.g., parsing IPs into countries and User-Agents into device types), and write them to a time-series optimized schema in Postgres.
+3. **Dedicated Ingestion:** A standalone consumer microservice will be introduced to ingest these events, enrich them (e.g., parsing IPs into countries and User-Agents into device types), and write them to a time-series optimized schema in Postgres.
 
 To support this ecosystem, the project will transition into a multi-module Maven build:
 - `backend`: The core redirection engine built in this sprint.
