@@ -22,7 +22,7 @@ Because dependency arrows point strictly inward, the infrastructure layer adapts
 ### Pragmatic Decisions for True Decoupling
 
 - **Zero Spring Annotations in Core Logic:** We intentionally keep `@Service` annotations out of the application layer. Instead, services are wired manually as `@Bean` instances within `ApplicationConfig`. This keeps the core logic independent of the Spring container.
-- **DStrict Adapter Boundaries:** Data Transfer Objects (DTOs) like `CreateLinkRequest` and `CreateLinkResponse` never leak into the application layer. Translation happens strictly at the HTTP boundary via mappers before the use case is invoked.
+- **Strict Adapter Boundaries:** Data Transfer Objects (DTOs) like `CreateLinkRequest` and `CreateLinkResponse` never leak into the application layer. Translation happens strictly at the HTTP boundary via mappers before the use case is invoked.
 - **Primitive Configuration Injection:** Instead of passing heavy `@ConfigurationProperties` objects deep into the business logic, configurations (like `defaultExpiryDays`) is injected as plain primitives.
 
 ---
