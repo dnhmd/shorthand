@@ -42,7 +42,7 @@ Every redirection triggers an asynchronous analytics event via Kafka. A standalo
 │    └── LinkClickEventPublisherPort                              │
 │              │ @Async + @CircuitBreaker                         │
 │              ▼                                                  │
-│         Kafka Producer ────────────► link-click-events topic    │
+│         KafkaProducer ────────────► link-click-events topic     │
 └─────────────────────────────────────────────────────────────────┘
                                               │
                                               ▼
@@ -178,7 +178,7 @@ Location: https://example.com
 
 ### Analytical Consumer Microservice (`http://127.0.0.1:8081`)
 
-Interactive Swagger UI: [`http://127.0.0.1:8081/swagger-ui/index.html`](http://127.0.0.1:8081/swagger-ui/index.html)
+Interactive Swagger UI Playground: [`http://127.0.0.1:8081/swagger-ui/index.html`](http://127.0.0.1:8081/swagger-ui/index.html)
 
 #### Retrieve Complete Analytics Summary
 
