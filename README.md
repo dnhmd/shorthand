@@ -1,6 +1,6 @@
 # Shorthand
 
-> A high-performance link management platform designed to process massive redirection volume while capturing real-time user metrics. By isolating the critical redirection path from the data-enrichment pipeline, the core engine achieves sub-millisecond response times on cached links, utilizing Kafka and Java 21 virtual threads to handle analytical ingestion completely out of the request-response lifecycle.
+Enterprise-grade URL shortener with real-time click analytics, built with Spring Boot 3, Kafka, Redis, and PostgreSQL using Hexagonal Architecture.
 
 ![Java](https://img.shields.io/badge/Java-21-orange?style=flat-square&logo=openjdk)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5-brightgreen?style=flat-square&logo=springboot)
@@ -13,9 +13,9 @@
 
 ## What is Shorthand?
 
-Shorthand operates as a high-throughput link management and real-time click analytics platform engineered to demonstrate enterprise-grade patterns, specifically caching, event-driven streaming, distributed rate limiting, fault tolerance, and time-series data storage.
+Shorthand is a high-throughput link management and real-time click analytics platform designed to demonstrate enterprise-grade backend engineering patterns across three planned development phases.
 
-Every redirection triggers an asynchronous analytics event via Kafka. A standalone consumer microservice enriches that payload with GeoIP and user-agent data before persisting it to a range-partitioned PostgreSQL table. The core routing service handles the redirect immediately and never blocks on downstream processing.
+Every redirect execution fires an asynchronous analytics event to Kafka. A standalone consumer microservice enriches that event with GeoIP and user-agent metadata before persisting it to a partitioned PostgreSQL table. The core routing service remains non-blocking to ensure low-latency redirection. A Redis-backed Token Bucket rate limiter guards the creation endpoint, while a Resilience4j circuit breaker isolates the redirect flow if the Kafka broker experiences downtime.
 
 ---
 
@@ -28,71 +28,71 @@ Every redirection triggers an asynchronous analytics event via Kafka. A standalo
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                    Backend Service (:8080)                       │
+│                    Backend Service (:8080)                      │
 │                                                                 │
-│  Rate Limit Filter (Token Bucket / Redis)                       │
+│  Rate Limit Filter ──── Token Bucket / Redis (Lua, atomic)      │
 │         │                                                       │
 │         ▼                                                       │
 │  RedirectController                                             │
 │         │                                                       │
 │         ▼                                                       │
 │  RedirectLinkService                                            │
-│    ├── LinkCachePort ──────────────► Redis (Cache-Aside)        │
-│    ├── LinkRepository ─────────────► PostgreSQL (links)         │
-│    └── LinkClickEventPublisherPort                              │
-│              │ @Async + @CircuitBreaker                         │
-│              ▼                                                  │
-│         KafkaProducer ────────────► link-click-events topic     │
-└─────────────────────────────────────────────────────────────────┘
-                                              │
-                                              ▼
+│    ├── Redis ─────────────── Cache-Aside (O(1) lookup)          │
+│    ├── PostgreSQL ─────────── links table (on cache miss)       │
+│    └── Kafka Producer ──────── @Async + @CircuitBreaker         │
+└──────────────────────────────────────┬──────────────────────────┘
+                                       │ link-click-events topic
+                                       ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                   Consumer Service (:8081)                       │
+│                   Consumer Service (:8081)                      │
 │                                                                 │
-│  KafkaListener                                                  │
+│  @KafkaListener                                                 │
 │         │                                                       │
 │         ▼                                                       │
 │  ProcessClickEventService                                       │
-│    ├── GeoIpAdapter ──────────────► MaxMind GeoLite2            │
-│    ├── YAUAA ─────────────────────► Device / OS / Browser       │
-│    └── ClickEventRepository ──────► PostgreSQL (analytics)      │
+│    ├── MaxMind GeoLite2 ──── IP → Country                       │
+│    ├── YAUAA ──────────────── UA → Device / OS / Browser        │
+│    └── PostgreSQL ─────────── analytics.click_events            │
+│                               (partitioned by clicked_at)       │
 │                                                                 │
-│  ClicksAnalyticsController                                      │
-│    └── 7 REST endpoints for click metrics                       │
+│  REST Analytics API ── 7 endpoints for click metrics            │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Project Structure
+The system is structured as a Maven multi-module project:
 
 ```
 shorthand/
 ├── common/          # Shared Kafka event schema (LinkClickEvent)
-├── backend/         # Core routing service — links, redirects, rate limiting
-├── consumer/        # Analytics microservice — Kafka consumer, metrics API
-├── utils/           # Binary assets (GeoIP database — git-ignored)
+├── backend/         # Core routing service
+├── consumer/        # Analytics microservice
+├── docs/            # Architecture, decisions, API reference, configuration
+│   └── sprints/     # Sprint-by-sprint engineering narrative
 └── docker-compose.yml
 ```
+
+Both microservices strictly follow Hexagonal Architecture principles, keeping domain logic entirely decoupled from Spring, JPA, Redis, and Kafka.
 
 ---
 
 ## Tech Stack
 
-| Layer            | Technology                            |
-|------------------|---------------------------------------|
-| Language         | Java 21 (Virtual Threads)             |
-| Framework        | Spring Boot 3.5                       |
-| Architecture     | Hexagonal (Ports & Adapters)          |
-| Database         | PostgreSQL 16 (Partitioned Tables)    |
-| Cache            | Redis 7.2 (Cache-Aside, Token Bucket) |
-| Messaging        | Apache Kafka 3.9                      |
-| ID Generation    | Snowflake ID + Base62 Encoding        |
-| GeoIP            | MaxMind GeoLite2                      |
-| UA Parsing       | YAUAA 7.28                            |
-| Fault Tolerance  | Resilience4j Circuit Breakers         |
-| Migrations       | Flyway                                |
-| Build Tool       | Maven (Multi-Module)                  |
-| Containerization | Docker Compose                        |
-| API Docs         | Springdoc OpenAPI (Swagger)           |
+| Layer | Technology |
+|---|---|
+| Language | Java 21 (Virtual Threads) |
+| Framework | Spring Boot 3.5 |
+| Architecture | Hexagonal (Ports & Adapters) |
+| Database | PostgreSQL 16 (Range-Partitioned Tables) |
+| Cache | Redis 7.2 (Cache-Aside, Token Bucket) |
+| Messaging | Apache Kafka 3.9 |
+| ID Generation | Snowflake ID + Base62 Encoding |
+| GeoIP | MaxMind GeoLite2 |
+| UA Parsing | YAUAA 7.28 |
+| Fault Tolerance | Resilience4j Circuit Breakers |
+| Migrations | Flyway (Independent per service) |
+| Build | Maven (Multi-Module) |
+| Containerization | Docker Compose |
+| API Docs | Springdoc OpenAPI (Swagger) |
 
 ---
 
@@ -103,57 +103,58 @@ shorthand/
 - Docker and Docker Compose
 - Java 21
 - Maven 3.9+
-- MaxMind GeoLite2 database (free account required)
+- A MaxMind account (required to retrieve the free GeoIP lookup database)
 
-### 1. Clone the repository
+### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/dnhmd/shorthand.git
 cd shorthand
 ```
 
-### 2. Download GeoIP database
+### 2. Configure the GeoIP Database
 
-1. Create a free account at [maxmind.com](https://www.maxmind.com/en/geolite-free-ip-geolocation-data)
-2. Download `GeoLite2-Country.mmdb`
-3. Place it at `utils/bin/geo-ip/GeoLite2-Country.mmdb`
+1. Sign up for a free account at [maxmind.com](https://www.maxmind.com/en/geolite-free-ip-geolocation-data).
+2. Download the `GeoLite2-Country.mmdb` database file.
+3. Save the file to the following path: `utils/bin/geo-ip/GeoLite2-Country.mmdb`
 
-### 3. Build the project
+### 3. Build the Binaries
 
 ```bash
-mvn clean package -DskipTests
+mvn clean package
 ```
 
-### 4. Initialize the stack
+### 4. Boot the Infrastructure Stack
 
 ```bash
 docker compose up -d
 ```
 
-This command provisions PostgreSQL, Redis, Kafka, Zookeeper, the backend routing service, and the consumer worker inside a single shared network context.
+This command initializes PostgreSQL, Redis, Kafka, Zookeeper, the core backend, and the consumer service simultaneously. Database schemas migrate automatically via Flyway on startup.
 
-### 5. Verify deployments
+### 5. Verify the Deployment
 
 ```bash
 docker compose ps
 ```
 
+Confirm that all six containers report a running status. The backend web server bind is accessible at `http://localhost:8080` and the analytics consumer api at `http://127.0.0.1:8081`.
+
+> **WSL2 Compatibility Note:** Target the explicit loopback IP `127.0.0.1` instead of `localhost` when dispatching calls to the consumer container from Windows or WSL2 terminal environments.
+
 ---
 
-## API Reference
+## Quick API Tour
 
-### Backend Core Routing Engine (`http://localhost:8080`)
-
-Interactive Swagger UI Playground: [`http://localhost:8080/swagger-ui/index.html`](http://localhost:8080/swagger-ui/index.html)
-
-#### Create a Short Link
+### Generate a Short Link
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/links \
   -H "Content-Type: application/json" \
   -d '{"originalLink": "https://example.com", "expiresInDays": 7}'
 ```
-_Response:_
+
+*Response:*
 
 ```json
 {
@@ -163,102 +164,77 @@ _Response:_
 }
 ```
 
-#### Redirect
+### Perform a Redirection
 
 ```bash
 curl -I http://localhost:8080/In52vyTSef
 ```
 
-_Response:_
+*Response:*
 
-```Plaintext
+```
 HTTP/1.1 302 Found
 Location: https://example.com
 ```
 
-### Analytical Consumer Microservice (`http://127.0.0.1:8081`)
-
-Interactive Swagger UI Playground: [`http://127.0.0.1:8081/swagger-ui/index.html`](http://127.0.0.1:8081/swagger-ui/index.html)
-
-#### Retrieve Complete Analytics Summary
+### Fetch Click Analytics Summary
 
 ```bash
 curl http://127.0.0.1:8081/api/v1/analytics/In52vyTSef/summary
 ```
 
-_Response:_
+*Response:*
 
 ```json
 {
   "total": 42,
-  "dates": [{ "label": "2026-06-29", "count": 42 }],
-  "countries": [{ "label": "India", "count": 38 }, { "label": "Unknown", "count": 4 }],
+  "dates": [{ "label": "2026-06-29 00:00:00+00", "count": 42 }],
+  "countries": [{ "label": "Kuwait", "count": 38 }],
   "browsers": [{ "label": "Chrome 149", "count": 30 }],
   "operatingSystems": [{ "label": "Windows NT 10.0", "count": 25 }],
-  "devices": [{ "label": "Desktop", "count": 38 }]
+  "devices": [{ "label": "Desktop", "count": 30 }]
 }
 ```
-
-#### All analytics endpoints
-
-| Endpoint | Description |
-|---|---|
-| `GET /api/v1/analytics/{code}/summary` | Consolidates all available operational matrices into a single payload. |
-| `GET /api/v1/analytics/{code}/clicks/total` | Returns total aggregate click volume. |
-| `GET /api/v1/analytics/{code}/clicks/by-date` | Groups redirect performance over calendar day intervals. |
-| `GET /api/v1/analytics/{code}/clicks/by-country` | Segregates traffic indicators by originating country. |
-| `GET /api/v1/analytics/{code}/clicks/by-browser` | Filters event distribution by end-user client applications. |
-| `GET /api/v1/analytics/{code}/clicks/by-os` | Outlines performance across distinct operating systems. |
-| `GET /api/v1/analytics/{code}/clicks/by-device` | Isolates historical metrics based on client hardware profiles. |
 
 ---
 
 ## Key Engineering Patterns
 
-**Hexagonal Architecture:** Domain models and core use cases remain entirely decoupled from Spring Boot frameworks, database engines, and cache layers. Core services are constructed manually via specialized configuration files (`@Beans`) rather than using container-bound annotations.
+**Hexagonal Architecture:** Domain structures remain isolated from infrastructure frameworks. Application services are wired as explicit `@Bean` instances within the configuration layer rather than relying on framework-specific `@Service` stereotypes.
 
-**Dynamic Cache-Aside Redirection:** — The edge proxy evaluates Redis memory structures prior to executing queries. When cache failures occur, transactions fall back to PostgreSQL and populate Redis using a variable TTL synchronized with the target link's remaining operational lifetime.
+**Cache-Aside with Lifespan Alignment:** Redirect actions check the Redis cache layer first. On cache misses, the backend queries PostgreSQL and registers the entry in Redis with a dynamic TTL matching the remaining life of the record.
 
-**Time-Ordered ID Formats:** High-scale, collision-free short codes are computed by transforming time-ordered 64-bit Snowflake IDs into alpha-numeric Base62 values, avoiding the storage overhead of random UUID variants.
+**Collision-Free Code Generation:** Short links are derived by converting time-ordered Snowflake IDs into Base62 representations. This ensures generation is deterministic and mathematically collision-free without requiring round-trip database uniqueness checks.
 
-**Atomic Rate Control:** Incoming API abuse prevention is evaluated directly inside Redis via optimized Lua script. The evaluation steps execute within a single thread loop to maintain exact consistency across independent service nodes.
+**Atomic Token Bucket Throttling:** Rate-limiting policies run natively inside Redis using a custom Lua script. Token replenishment is continuous, closing boundary burst loopholes and avoiding multi-thread race conditions.
 
-**Asynchronous Message Ingestion:** Telemetry tracking logic utilizes Spring's `@Async` abstraction running atop lightweight Java 21 virtual threads, letting the edge gateway return `302 Found` responses without awaiting broker responses.
+**Asynchronous Event Handlers:** Tracking data is dispatched using non-blocking `@Async` proxies bound to Java 21 virtual threads. This configuration allows the backend to redirect client traffic immediately while streaming telemetry tasks run out-of-band.
 
-**Fault Isolation Over Message Buses:** Outbound telemetry publishers are monitored via specialized Resilience4j circuit breakers. Downstream messaging interruptions trigger structural fallback captures, letting the core edge controller maintain routing continuity.
+**Circuit Breaker Boundaries:** The Kafka publishing client is wrapped by a Resilience4j circuit breaker. If the broker is unavailable, the circuit transitions to an open state and gracefully diverts tracking data to fallback loggers to protect the primary redirect loop.
 
-**Time-Series Schemas:** Large-scale analytics logs are split natively inside PostgreSQL using range partitions indexed by time variables, letting metrics evaluation logic prune unneeded chunks automatically.
-
----
-
-## Environment Variables
-
-| Variable                   | Default                                          | Description                                                           |
-|----------------------------|--------------------------------------------------|-----------------------------------------------------------------------|
-| `DB_URL`                   | `jdbc:postgresql://localhost:5432/shorthand_db`  | Connection target details for the core database instance.             |
-| `DB_USERNAME`              | `shorthand_user`                                 | Authorized administration account name.                               |
-| `DB_PASSWORD`              | `shorthand_password`                             | Access credential for the target database schema.                     |
-| `REDIS_HOST`               | `localhost`                                      | Target network location for memory caching arrays.                    |
-| `REDIS_PORT`               | `6379`                                           | Operational network port for Redis interactions.                      |
-| `KAFKA_BOOTSTRAP_SERVERS`  | `localhost:9092`                                 | Core bootstrap details for active Kafka instances.                    |
-| `GEOIP_DATABASE_PATH`      | `../utils/bin/geo-ip/GeoLite2-Country.mmdb`      | Absolute file destination mapping regional lookup databases.          |
-| `DEFAULT_EXPIRY_DAYS`      | `7`                                              | Fallback operational lifespan assigned to standard shortened indices. |
-| `RATE_LIMITER_CAPACITY`    | `10`                                             | Maximum token depth allocated per individual client bucket.           |
-| `RATE_LIMITER_REFILL_RATE` | `0.1`                                            | Fractional allocation speed calculating token replenishment.          |
+**Database Partitioning:** The analytics database leverages range partitioning across the `clicked_at` timestamp. Query engines utilize partition pruning to isolate execution paths to specific target monthly tables.
 
 ---
 
-## Live Demo
+## Platform Documentation Directory
 
-> Deployment preparation is underway. Public platform endpoints will be updated here upon completion.
+| Document                                                         | Description                                                                          |
+|------------------------------------------------------------------|--------------------------------------------------------------------------------------|
+| [`docs/architecture.md`](docs/architecture.md)                   | Core components, package boundaries, data flows, and database definitions.           |
+| [`docs/engineering-decisions.md`](docs/engineering-decisions.md) | Architectural decision records, structural options, and technical tradeoffs.         |
+| [`docs/api-reference.md`](docs/api-reference.md)                 | Complete REST specifications, payload shapes, and global error codes.                |
+| [`docs/configuration.md`](docs/configuration.md)                 | Environment variables, local properties, networks, and diagnostic logging.           |
+| [`docs/sprints/SPRINT_1.md`](docs/sprints/SPRINT_1.md)           | Technical breakdown of core routing, cache resolution, and identity generation.      |
+| [`docs/sprints/SPRINT_2.md`](docs/sprints/SPRINT_2.md)           | Architecture of the Kafka streaming pipeline and consumer microservice integration.  |
+| [`docs/sprints/SPRINT_3.md`](docs/sprints/SPRINT_3.md)           | Implementation of GeoIP resolution, rate limiters, circuit breakers, and containers. |
 
 ---
 
-## Sprint History
+## Development Roadmap
 
-| Sprint       | Focus                                                                                                                             | Status   |
-|--------------|-----------------------------------------------------------------------------------------------------------------------------------|----------|
-| **Sprint 1** | Edge Routing Engines, Cache-Aside Layouts, Base62 Transformations.                                                                | Complete |
-| **Sprint 2** | Event Streaming Buses, Autonomous Metric Consumers.                                                                               | Complete |
-| **Sprint 3** | GeoIP Engines, REST Analytics Layer, Token-Bucket Abstraction, Resilience Integrations, Container Orchestration.                  | Complete |
-| **Sprint 4** | Dead Letter Replay Implementations, Dynamic Security Credentials, Account Boundaries, Live Stream WebSockets, Cloud Definitions.  | Planned  |
+| Phase    | Milestone Focus                                                                                                       | Status   |
+|----------|-----------------------------------------------------------------------------------------------------------------------|----------|
+| Sprint 1 | Core Redirection Engine, Cache-Aside Caching, Base62 Encoding, and Snowflake Keys                                     | Complete |
+| Sprint 2 | Non-blocking Kafka Pipeline, Standalone Consumer Microservice                                                         | Complete |
+| Sprint 3 | GeoIP Resolution, Analytics API, Redis Token Bucket Limiter, Circuit Breakers, Dockerization                          | Complete |
+| Sprint 4 | Integeration Tests, Dead Letter Queue, API Key Authentication, Multi-tenant Profiles, Cloud Infrastructure Deployment | Planned  |
