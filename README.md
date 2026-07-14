@@ -7,6 +7,7 @@ Enterprise-grade URL shortener with real-time click analytics, built with Spring
 ![Kafka](https://img.shields.io/badge/Apache%20Kafka-3.9-black?style=flat-square&logo=apachekafka)
 ![Redis](https://img.shields.io/badge/Redis-7.2-red?style=flat-square&logo=redis)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue?style=flat-square&logo=postgresql)
+![Resilience4j](https://img.shields.io/badge/Resilience4j-2.2-green?style=flat-square)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square&logo=docker)
 
 ---
