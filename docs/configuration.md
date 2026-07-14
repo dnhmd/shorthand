@@ -1,7 +1,5 @@
 # Configuration
 
-# Configuration
-
 All configurations are externalized using standard environment variables paired with localized fallbacks. Each service reads from its own dedicated `application.yaml` file, resolving variables via the `${VAR:default}` interpolation pattern (utilizing the specified environment variable if present, or defaulting to the safe fallback value).
 
 ---
